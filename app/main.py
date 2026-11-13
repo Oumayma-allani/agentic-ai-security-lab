@@ -1,5 +1,5 @@
 
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 app = FastAPI(
@@ -7,6 +7,18 @@ app = FastAPI(
     description="API authorization and AI agent security testing",
     version="0.2.0"
 )
+
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+
+    # Prevent browsers from MIME-sniffing responses
+    response.headers["X-Content-Type-Options"] = "nosniff"
+
+    # Restrict cross-origin resource embedding
+    response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
+
+    return response
 
 security = HTTPBearer(auto_error=False)
 

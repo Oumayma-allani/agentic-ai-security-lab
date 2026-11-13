@@ -11,6 +11,7 @@ permissions:
 
 jobs:
   security-tests:
+    name: API Authorization Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -30,6 +31,56 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install -r requirements.txt
 
-      - name: Run API security regression tests
+      - name: Run security regression tests
         run: |
           python -m pytest tests/ -v -rx
+
+  dast-scan:
+    name: OWASP ZAP Authenticated API Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Prepare ZAP report directory
+        run: |
+          mkdir -p reports/zap
+          sudo chown 1000:1000 reports/zap
+
+      - name: Build and start FastAPI
+        run: |
+          docker compose up -d --build --wait api
+
+      - name: Run authenticated OWASP ZAP scan
+        run: |
+          docker compose run --rm zap
+
+      - name: Verify authenticated scan traffic
+        run: |
+          docker compose logs --no-color api > api.log
+          if grep -Eq 'GET /me HTTP/1.1" 200' api.log; then
+            echo "Authenticated API request confirmed."
+          else
+            echo "No successful authenticated /me request found."
+            exit 1
+          fi
+          rm api.log
+
+      - name: Upload ZAP security reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: zap-security-reports
+          path: |
+            reports/zap/api-scan.html
+            reports/zap/api-scan.json
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Stop containers
+        if: always()
+        run: |
+          docker compose down --volumes

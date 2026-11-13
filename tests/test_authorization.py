@@ -190,3 +190,18 @@ def test_confirmed_approval_reaches_api():
         mocked_post.assert_called_once()
 
     assert "Promotion approved" in result
+
+
+def test_security_headers():
+    for path in ["/health", "/me", "/openapi.json"]:
+        headers = (
+            auth("alice-demo-token")
+            if path == "/me"
+            else {}
+        )
+
+        response = client.get(path, headers=headers)
+
+        assert response.status_code == 200
+        assert response.headers["x-content-type-options"] == "nosniff"
+        assert response.headers["cross-origin-resource-policy"] == "same-origin"
