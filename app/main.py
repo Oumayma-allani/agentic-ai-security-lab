@@ -1,7 +1,7 @@
 
 from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-
+from pydantic import BaseModel, Field
 app = FastAPI(
     title="Agentic AI Security Lab",
     description="API authorization and AI agent security testing",
@@ -177,5 +177,37 @@ def approve_promotion_endpoint(
 
     return {
         "message": "Promotion approved",
+        "promotion": promotion
+    }
+
+class DescriptionUpdate(BaseModel):
+    description: str = Field(min_length=1, max_length=4000)
+
+
+@app.patch("/promotions/{promotion_id}/description")
+def update_promotion_description(
+    promotion_id: str,
+    update: DescriptionUpdate,
+    user=Depends(get_current_user)
+):
+    promotion = PROMOTIONS.get(promotion_id)
+
+    if not promotion:
+        raise HTTPException(
+            status_code=404,
+            detail="Promotion not found"
+        )
+
+    if promotion["tenant_id"] != user["tenant_id"]:
+        raise HTTPException(
+            status_code=403,
+            detail="Access denied"
+        )
+
+    # Analysts can legitimately edit descriptions.
+    promotion["description"] = update.description
+
+    return {
+        "message": "Description updated",
         "promotion": promotion
     }

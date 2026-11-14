@@ -29,6 +29,22 @@ def main():
         default=None,
         help="Request an explicit human confirmation for one promotion"
     )
+    parser.add_argument(
+    "--vulnerable-lab",
+    action="store_true",
+    help="Use the intentionally insecure read tool"
+)
+
+    parser.add_argument(
+        "--unsafe-approval-lab",
+        action="store_true",
+        help="Enable intentionally unsafe approval workflow"
+    )
+    parser.add_argument(
+        "--weak-prompt-lab",
+        action="store_true",
+        help="Use the weak system prompt for controlled comparisons"
+    )
     args = parser.parse_args()
     confirmed_id = None
 
@@ -45,7 +61,11 @@ def main():
         else:
             print("Confirmation not granted. Approval remains blocked.")
 
-    agent = build_agent()
+    agent = build_agent(
+    vulnerable=args.vulnerable_lab,
+    unsafe_approval=args.unsafe_approval_lab,
+    use_weak_prompt=args.weak_prompt_lab
+)
 
     result = agent.invoke(
         {

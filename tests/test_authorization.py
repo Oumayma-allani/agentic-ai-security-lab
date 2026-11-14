@@ -205,3 +205,52 @@ def test_security_headers():
         assert response.status_code == 200
         assert response.headers["x-content-type-options"] == "nosniff"
         assert response.headers["cross-origin-resource-policy"] == "same-origin"
+
+
+import json
+from app.agent import read_promotion
+
+
+def test_read_tool_does_not_require_approval():
+    runtime = SimpleNamespace(
+        context=AuthContext(token="alice-demo-token")
+    )
+
+    with patch("app.agent.httpx.get") as mocked_get:
+        mocked_get.return_value.status_code = 200
+        mocked_get.return_value.json.return_value = {
+            "id": "P-101",
+            "tenant_id": "tenant-a",
+            "status": "draft"
+        }
+
+        result = read_promotion.func(
+            promotion_id="P-101",
+            runtime=runtime
+        )
+
+        mocked_get.assert_called_once()
+
+    assert json.loads(result)["id"] == "P-101"
+
+
+def test_read_tool_respects_api_denial():
+    runtime = SimpleNamespace(
+        context=AuthContext(token="alice-demo-token")
+    )
+
+    with patch("app.agent.httpx.get") as mocked_get:
+        mocked_get.return_value.status_code = 403
+        mocked_get.return_value.json.return_value = {
+            "detail": "Access denied"
+        }
+
+        result = read_promotion.func(
+            promotion_id="P-201",
+            runtime=runtime
+        )
+
+        mocked_get.assert_called_once()
+
+    assert "HTTP 403" in result
+    assert "Access denied" in result
