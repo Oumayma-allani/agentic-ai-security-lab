@@ -28,25 +28,13 @@ All data and credentials are synthetic.
 - Docker and Docker Compose
 - GitHub Actions CI/CD
 
+
 ## Architecture
 
-User / Attacker
-    |
-    v
-LangGraph AI Agent
-    |
-    +-- read_promotion
-    +-- approve_promotion
-    |
-    v
-FastAPI REST API
-    |
-    +-- Authentication
-    +-- RBAC
-    +-- Tenant isolation
-    +-- Promotion data
+![Architecture Diagram](docs/images/architecture-diagram.png)
 
 Security testing:
+
 - pytest authorization and security regression tests
 - OWASP ZAP authenticated DAST
 - Automated LLM red-team experiments
